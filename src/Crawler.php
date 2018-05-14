@@ -9,6 +9,7 @@ use GuzzleHttp\ClientInterface;
 use GuzzleHttp\Exception\GuzzleException;
 use GuzzleHttp\Promise;
 use GuzzleHttp\Promise\PromiseInterface;
+// use GuzzleHttp\RequestOptions\DELAY;
 use Smochin\Instagram\Factory\LocationFactory;
 use Smochin\Instagram\Factory\MediaFactory;
 use Smochin\Instagram\Factory\TagFactory;
@@ -95,9 +96,8 @@ class Crawler
    public function getMediaByLocation(int $id): array
    {
       $response = $this->client->request('GET', sprintf(self::LOCATION_ENDPOINT, $id));
-      $body = json_decode($response->getBody()->getContents(), true);
-
-      return $this->getMediaAsync(array_column($body['location']['media']['nodes'], 'code'));
+      $body = json_decode($response->getBody()->getContents(), true)['graphql'];
+      return $this->getMediaAsync(array_column($body['location']['edge_location_to_media']['edges'], 'node' ) );
    }
 
    /**
@@ -137,7 +137,7 @@ class Crawler
    private function getMediaAsync(array $codes): array
    {
       $promises = array_map(function ($code): PromiseInterface {
-         return $this->client->requestAsync('GET', sprintf(self::MEDIA_ENDPOINT, $code));
+         return $this->client->requestAsync('GET', sprintf(self::MEDIA_ENDPOINT, $code['shortcode']));
       }, $codes);
       $results = Promise\settle($promises)->wait();
 
